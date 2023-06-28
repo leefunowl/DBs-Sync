@@ -1,6 +1,10 @@
-# SQL Databases Synchronization
+# SQL Databases Synchronization (on going project)
 
 This is a program which can synchronize a target database with a source database.
+
+## Testing
+
+Run `python -m unittest discover -v` in the project's directory to test the program.
 
 ## Situations where this program can be useful
 

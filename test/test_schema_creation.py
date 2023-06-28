@@ -1,21 +1,33 @@
 import unittest
 
-from create_DB_and_tables import schema_creation
-from config import config
+from create_DB_and_tables import schema_creation, drop_all_tables, engine_creation, meta_creation, meta_reflection
+from config import test as config
 
-class TestSchemaCreation(unittest.TestCase):
+class TestSchema(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super(TestSchema, self).__init__(*args, **kwargs)
+        source_db_engine, target_db_engine = engine_creation(config.source_db_uri, config.target_db_uri)
+        meta = meta_creation()
+        self.source_db_engine = source_db_engine
+        self.target_db_engine = target_db_engine
+        self.meta = meta
 
-    None
+    def test_schema_deletion(self):
+        # source_db_engine, target_db_engine = engine_creation(config.source_db_uri, config.target_db_uri)
+        # meta = meta_creation()
+        # drop_all_tables(source_db_engine, target_db_engine, meta)
+        # source_db_meta, target_db_meta = meta_reflection(source_db_engine, target_db_engine)
+        drop_all_tables(self.source_db_engine, self.target_db_engine, self.meta)
+        source_db_meta, target_db_meta = meta_reflection(self.source_db_engine, self.target_db_engine)
+        # Confirm no tables in DBs
+        self.assertEqual(len(source_db_meta.tables.keys()), 0)
+        self.assertEqual(len(target_db_meta.tables.keys()), 0)
 
-    # def test_create_square_negative_length(self):
-    #     with self.assertRaises(ValueError):
-    #         square = Square(-1)
 
-    # def test_square_instance_of_shape(self):
-    #     square = Square(10)
-    #     self.assertIsInstance(square, Shape)
+    def test_schema_creation(self):
+        drop_all_tables(self.source_db_engine, self.target_db_engine, self.meta)
+        schema_creation(self.source_db_engine, self.target_db_engine, self.meta)
 
-    # def test_area(self):
-    #     square = Square(10)
-    #     area = square.area()
-    #     self.assertEqual(area, 100)
+        source_db_meta, target_db_meta = meta_reflection(self.source_db_engine, self.target_db_engine)
+        self.assertNotEqual(len(source_db_meta.tables.keys()), 0)
+        self.assertNotEqual(len(target_db_meta.tables.keys()), 0)
