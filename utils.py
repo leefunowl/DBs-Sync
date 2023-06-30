@@ -1,6 +1,7 @@
 from sqlalchemy.ext.automap import automap_base
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, select, delete
+from sqlalchemy.orm import Session, sessionmaker
+import pandas as pd, logging, datetime, os
 
 def engine_creation(source_db_uri, target_db_uri):
     source_db_engine = create_engine(source_db_uri, echo = True)
@@ -21,7 +22,6 @@ def automap_classes(engine):
     Base.prepare(autoload_with=engine)
 
     return Base
-
 
 def meta_creation():
     meta = MetaData()
@@ -91,3 +91,40 @@ def insert_test_data_target_db(engine):
         session.commit()
         
         return session.query(students).count()
+
+def sync_existing_tables(source_db_engine, target_db_engine, table_model):
+
+    sql = select(table_model)
+    df_source = pd.read_sql(sql = sql, con = source_db_engine)
+    df_target = pd.read_sql(sql = sql, con = target_db_engine)
+
+    df_source['type'] = 'source'
+    df_target['type'] = 'target'
+
+    df_concat = pd.concat([df_source, df_target])
+    primary_key = table_model.primary_key.columns.values()[0].name # .__mapper__.primary_key[0].name
+    # after drop_duplicates, the left ones from targets (type 'target') needed to be deleted (includes deleted and updated rows)
+    # the left ones from sources (type 'source') needed to be inserted (includes new and updated rows)
+    df_concat.drop_duplicates(subset = df_concat.columns[:-1], keep = False, inplace = True, ignore_index = True)
+
+    df_delete = df_concat.loc[df_concat['type'] == 'target'].drop('type', axis = 1)
+    df_insert = df_concat.loc[df_concat['type'] == 'source'].drop('type', axis = 1)
+
+    # delete rows for deleted and updated rows
+    if df_delete.shape[0] > 0: # only run sql if there is actually rows to delete
+        Session = sessionmaker(bind = target_db_engine)
+        with Session() as session:
+            # sql = delete(table_model).where(getattr(table_model, primary_key).in_([int(i) for i in df_delete[primary_key].values]))
+            sql = delete(table_model).where(table_model.c[primary_key].in_([int(i) for i in df_delete[primary_key].values]))
+            session.execute(sql)
+            session.commit()
+        print('\nThese rows are deleted from target db:\n\n', df_delete)
+
+    # insert rows for new and updated rows
+    if df_insert.shape[0] > 0:
+        df_insert.to_sql(name = table_model.name, con = target_db_engine, if_exists = 'append', index = False)
+        print('\nThese rows are inserted into target db:\n\n', df_insert)
+
+def log_init(log_path):
+    os.remove(log_path)
+    logging.basicConfig(filename=log_path, level=logging.DEBUG)

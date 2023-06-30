@@ -1,11 +1,12 @@
 import unittest
 
-from create_DB_and_tables import *
+from utils import *
 from config import test as config
 
 class TestSchema(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestSchema, self).__init__(*args, **kwargs)
+        log_init(config.log_path)
         source_db_engine, target_db_engine = engine_creation(config.source_db_uri, config.target_db_uri)
         meta = meta_creation()
         self.source_db_engine = source_db_engine
