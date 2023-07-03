@@ -103,9 +103,11 @@ def sync_existing_tables(source_db_engine, target_db_engine, table_model):
 
     df_concat = pd.concat([df_source, df_target])
     primary_key = table_model.primary_key.columns.values()[0].name # .__mapper__.primary_key[0].name
+    columns_2_compare = list(df_concat.columns.copy())
+    columns_2_compare.remove(primary_key)
     # after drop_duplicates, the left ones from targets (type 'target') needed to be deleted (includes deleted and updated rows)
     # the left ones from sources (type 'source') needed to be inserted (includes new and updated rows)
-    df_concat.drop_duplicates(subset = df_concat.columns[:-1], keep = False, inplace = True, ignore_index = True)
+    df_concat.drop_duplicates(subset = columns_2_compare, keep = False, inplace = True, ignore_index = True)
 
     df_delete = df_concat.loc[df_concat['type'] == 'target'].drop('type', axis = 1)
     df_insert = df_concat.loc[df_concat['type'] == 'source'].drop('type', axis = 1)
@@ -126,5 +128,6 @@ def sync_existing_tables(source_db_engine, target_db_engine, table_model):
         print('\nThese rows are inserted into target db:\n\n', df_insert)
 
 def log_init(log_path):
-    os.remove(log_path)
+    if os.path.isfile(log_path):
+        os.remove(log_path)
     logging.basicConfig(filename=log_path, level=logging.DEBUG)
