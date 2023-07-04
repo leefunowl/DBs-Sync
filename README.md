@@ -15,8 +15,10 @@ Run `python -m unittest discover -v` in the project's directory to test the prog
 
 ## Limitation
 
-This program is not doing a realtime database synchronization.
+- This program is not doing a realtime database synchronization.
+- When there is a new table in the source DB, the schema of the new table needs to be added into target DB first. Then re-run this program.
 
 ## Further development
 
-Develop a program to sync database in real time efficiently.
+- Sync tables whose schema are different. For example, a `students` table in the source DB has a new column. This column of data will need to be sync into the target DB.
+- Develop a program to sync database in real time efficiently.
