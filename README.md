@@ -4,7 +4,14 @@ This is a program which can synchronize a target database with a source database
 
 ## Testing
 
-Run `python -m unittest discover -v` in the project's directory to test the program.
+- Create a Python venv
+- Install dependencies: `pip3 install -r requirements.txt`
+- Run `python -m unittest discover -v` in the project's directory to test the program.
+
+## How to use
+
+- Update `config.py` with your source and target databases uri
+- Run the sync program: `python3 sync.py`
 
 ## Situations where this program can be useful
 
